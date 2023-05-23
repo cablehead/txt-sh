@@ -12,24 +12,6 @@ tests/cli.rs
 $(cat tests/cli.rs)
 ```
 
-Duplicate the current from_file test to add a new integration test.
+We've just added the new failing test: `from_file_with_pipe`
 
-This variation uses the template:
-
-```
-Hello, $(echo hello world)!
-
->(cat)
-```
-
-Pipe the string "How are you?" to txt-sh
-
-Expect the output:
-
-```
-Hello, world!
-
-How are you?
-```
-
-Respond just with the new test
+Update main.rs so to allow the pattern <(...) when a FILE is supplied. Pipe txt-sh's stdin the spawn child process
