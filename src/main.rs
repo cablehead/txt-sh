@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -17,22 +17,25 @@ fn main() {
     let args = Args::parse();
 
     let mut input = String::new();
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .expect("Failed to read input from stdin");
+
+    let mut template = String::new();
     match args.file {
         Some(file_path) => {
             let mut file = File::open(file_path).expect("Failed to open file");
-            file.read_to_string(&mut input)
+            file.read_to_string(&mut template)
                 .expect("Failed to read input from file");
         }
         None => {
-            io::stdin()
-                .read_to_string(&mut input)
-                .expect("Failed to read input from stdin");
+            template = input.to_string();
         }
     }
 
     let re = regex::Regex::new(r"\$\((.*?)\)").unwrap();
     let pipe_re = regex::Regex::new(r">\((.*?)\)").unwrap();
-    let output = re.replace_all(&input, |caps: &regex::Captures<'_>| {
+    let output = re.replace_all(&template, |caps: &regex::Captures<'_>| {
         let command = caps.get(1).unwrap().as_str();
         let output = std::process::Command::new("sh")
             .arg("-c")
@@ -52,7 +55,11 @@ fn main() {
             .spawn()
             .expect("Failed to spawn child process");
 
-        io::copy(&mut io::stdin(), child.stdin.as_mut().expect("Failed to open stdin"))
+        child
+            .stdin
+            .as_mut()
+            .expect("Failed to open stdin")
+            .write_all(input.as_bytes())
             .expect("Failed to write to stdin");
 
         let output = child
