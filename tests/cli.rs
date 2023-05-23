@@ -65,3 +65,35 @@ fn from_file() {
     assert!(output.status.success());
     assert_eq!(output.stdout, b"Hello, world!\n");
 }
+
+#[test]
+fn from_file_with_pipe() {
+    let txt_sh = cargo_bin("txt-sh");
+
+    // Create a temporary file with the template content
+    let mut temp_file = tempfile::NamedTempFile::new().expect("Failed to create temporary file");
+    write!(temp_file, "Hello, $(echo world)!\n\n>(cat)")
+        .expect("Failed to write to temporary file");
+
+    // Run the txt-sh command with the temporary file as input and pipe the string "How are you?" to it
+    let mut child = Command::new(txt_sh)
+        .arg(temp_file.path())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn child process");
+
+    {
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+        stdin
+            .write_all(b"How are you?")
+            .expect("Failed to write to stdin");
+    }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait on child process");
+
+    assert!(output.status.success());
+    assert_eq!(output.stdout, b"Hello, world!\n\nHow are you?\n");
+}

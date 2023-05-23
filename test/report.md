@@ -12,5 +12,24 @@ tests/cli.rs
 $(cat tests/cli.rs)
 ```
 
-Add an additional integration test which reads the template from a file
+Duplicate the current from_file test to add a new integration test.
 
+This variation uses the template:
+
+```
+Hello, $(echo hello world)!
+
+>(cat)
+```
+
+Pipe the string "How are you?" to txt-sh
+
+Expect the output:
+
+```
+Hello, world!
+
+How are you?
+```
+
+Respond just with the new test
