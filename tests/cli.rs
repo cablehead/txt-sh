@@ -47,3 +47,21 @@ fn from_stdin() {
     assert!(output.status.success());
     assert_eq!(output.stdout, b"Hello, world!\n");
 }
+
+#[test]
+fn from_file() {
+    let txt_sh = cargo_bin("txt-sh");
+
+    // Create a temporary file with the template content
+    let mut temp_file = tempfile::NamedTempFile::new().expect("Failed to create temporary file");
+    write!(temp_file, "Hello, $(echo world)!").expect("Failed to write to temporary file");
+
+    // Run the txt-sh command with the temporary file as input
+    let output = Command::new(txt_sh)
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    assert_eq!(output.stdout, b"Hello, world!\n");
+}

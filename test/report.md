@@ -1,6 +1,16 @@
+This is our Rust project so far:
 
-This is how the starting main function looks for Rust programs:
+main.rs:
 
 ```rust
-$(cat ../uds/src/main.rs)
+$(cat src/main.rs)
 ```
+
+tests/cli.rs
+
+```rust
+$(cat tests/cli.rs)
+```
+
+Add an additional integration test which reads the template from a file
+
