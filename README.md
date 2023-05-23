@@ -1,17 +1,10 @@
 # txt-sh
 
-`txt-sh` is a Rust-based command-line utility that reads input from the
-standard input (stdin) and searches for any occurrences of the pattern `$()`.
-Inside the parentheses, it expects a shell command. For each occurrence of the
-pattern, the Rust binary executes the shell command inside the parentheses
-using the "sh" shell. It then replaces the pattern with the output of the
-executed command and prints the final output to the standard output (stdout).
-
-This utility is primarily useful for text processing and templating. You can
-use it to process text files or templates containing shell commands, replacing
-them with their respective outputs. This can be helpful for generating
-configuration files, reports, or other text-based documents that require
-dynamic content based on the output of shell commands.
+`txt-sh` is a nifty command-line tool made with Rust that looks for `$()`
+patterns in standard input, runs the shell command inside, and swaps the
+pattern with the command's output. It's handy for text processing and
+templating, letting you create dynamic content in text files using shell
+command outputs.
 
 ## Usage
 
