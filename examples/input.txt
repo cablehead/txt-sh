@@ -1,0 +1,5 @@
+Hello, today is $(date).
+The current directory contains $(ls | wc -l) files.
+
+Here's an additional note: >(cat)
+

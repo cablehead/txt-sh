@@ -12,6 +12,11 @@ tests/cli.rs
 $(cat tests/cli.rs)
 ```
 
+README.md:
+
+```rust
+$(cat README.md)
+
 ```
 >(cat)
 ```
