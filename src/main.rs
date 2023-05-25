@@ -13,6 +13,58 @@ struct Args {
     file: Option<PathBuf>,
 }
 
+struct CommandOutput {
+    stdout: String,
+    stderr: Option<String>,
+    code: Option<i32>,
+}
+
+fn execute_child_command(command: &str, input: Option<&str>) -> CommandOutput {
+    let mut child = Command::new("sh");
+    child
+        .arg("-c")
+        .arg(command)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    if input.is_some() {
+        child.stdin(Stdio::piped());
+    }
+
+    let mut child = child.spawn().expect("Failed to spawn child process");
+
+    if let Some(input) = input {
+        child
+            .stdin
+            .as_mut()
+            .expect("Failed to open stdin")
+            .write_all(input.as_bytes())
+            .expect("Failed to write to stdin");
+    }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait on child process");
+
+    let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let stderr = if output.stderr.is_empty() {
+        None
+    } else {
+        Some(String::from_utf8(output.stderr).unwrap().trim().to_string())
+    };
+    let code = if output.status.success() {
+        None
+    } else {
+        Some(output.status.code().unwrap())
+    };
+
+    CommandOutput {
+        stdout,
+        stderr,
+        code,
+    }
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -33,40 +85,34 @@ fn main() {
         }
     }
 
-    let re = regex::Regex::new(r"\$\((.*?)\)").unwrap();
-    let pipe_re = regex::Regex::new(r">\((.*?)\)").unwrap();
+    let re = regex::Regex::new(r"(\$\(|>\()(.*?)\)").unwrap();
     let output = re.replace_all(&template, |caps: &regex::Captures<'_>| {
-        let command = caps.get(1).unwrap().as_str();
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()
-            .expect("Failed to execute command");
-        String::from_utf8(output.stdout).unwrap().trim().to_string()
-    });
+        let command_type = caps.get(1).unwrap().as_str();
+        let command = caps.get(2).unwrap().as_str();
 
-    let output = pipe_re.replace_all(&output, |caps: &regex::Captures<'_>| {
-        let command = caps.get(1).unwrap().as_str();
-        let mut child = Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failed to spawn child process");
+        let output = execute_child_command(
+            command,
+            if command_type == "$(" {
+                None
+            } else {
+                Some(&input)
+            },
+        );
 
-        child
-            .stdin
-            .as_mut()
-            .expect("Failed to open stdin")
-            .write_all(input.as_bytes())
-            .expect("Failed to write to stdin");
+        if output.stderr.is_some() || output.code.is_some() {
+            eprintln!("Running: {}", command);
 
-        let output = child
-            .wait_with_output()
-            .expect("Failed to wait on child process");
+            if let Some(ref stderr_output) = output.stderr {
+                eprintln!("\n```stderr\n{}\n```\n", stderr_output);
+            }
 
-        String::from_utf8(output.stdout).unwrap().trim().to_string()
+            if let Some(code) = output.code {
+                eprintln!("exit-code: {}", code);
+                std::process::exit(code);
+            }
+        }
+
+        output.stdout
     });
 
     println!("{}", output);

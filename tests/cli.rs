@@ -97,3 +97,37 @@ fn from_file_with_pipe() {
     assert!(output.status.success());
     assert_eq!(output.stdout, b"Hello, world!\n\nHow are you?\n");
 }
+
+#[test]
+fn test_non_zero_exit_status() {
+    let txt_sh = cargo_bin("txt-sh");
+
+    let input = "$(echo 1)\n$(eho 2)\n$(echo 3)\n";
+
+    let mut child = Command::new(txt_sh)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn child process");
+
+    {
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+        stdin
+            .write_all(input.as_bytes())
+            .expect("Failed to write to stdin");
+    }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait on child process");
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout, "");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(
+        stderr,
+        "Running: eho 2\n\n```stderr\nsh: eho: command not found\n```\n\nexit-code: 127\n"
+    );
+}
